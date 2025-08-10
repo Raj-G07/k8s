@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: ecom-backend-deployment
+spec:
+ replicas: 1
+ selector:
+  matchLabels: 
+   app: ecom-backend
+ template:
+  metadata:
+   labels:
+    app: ecom-backend
+  spec:
+   containers:
+   - name: ecom-backend
+     image: 100xhdhd/evn-backend
+     ports:
+     - containerPort: 3000
+     env: 
+     - name: DATABASE_URL 
+       valueFrom:
+        configMapKeyRef:
+         name: ecom-backend-config
+         key: database_url
+     - name: CACHE_SIZE
+       valueFrom:
+        configMapKeyRef:
+          name: ecom-backend-config
+          key: cache_size 
+   - name: SESSION_TIMEOUT
+     valueFrom:
+       configMapKeyRef:
+        name: ecom-backend-config
+        key: session_timeout  
+---
+apiVersion: v1
+kind: Service
+metadata: 
+ name: ecom-backend-service
+spec:
+ selector:
+  app: ecom-backend
+ ports:
+  - port: 3000
+    targetPort: 3000
+    nodePort: 30007
+ type: NodePort
