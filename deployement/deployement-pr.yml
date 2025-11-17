@@ -43,3 +43,17 @@ spec:
             limits:
               cpu: "300m"
               memory: "256Mi"
+      
+      # Pod Anti-Affinity
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100 # High preference
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                   - key: app # Label key
+                     operator: In
+                     values:
+                      - react # Label value
+                topologyKey: kubernetes.io/hostname
