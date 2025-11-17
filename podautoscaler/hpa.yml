@@ -1,18 +1,18 @@
-apiVersion:
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: react-hpa
 spec:
-  minReplicas: 2
-  maxReplicas: 5
-  metrics:
-   - resource:
-       name: cpu
-       target:
-         type: Utilization
-         averageUtilization: 60
-     type: Resource
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
     name: react-deployment
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+   - type: Resource
+     resource:
+       name: cpu
+       target:
+         type: Utilization
+         averageUtilization: 60
