@@ -57,3 +57,8 @@ spec:
                      values:
                       - react # Label value
                 topologyKey: kubernetes.io/hostname
+      tolerations:
+        - key: env
+          value: prod
+          operator: Equal
+          effect: NoSchedule
