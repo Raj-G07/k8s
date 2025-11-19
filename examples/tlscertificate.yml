@@ -1,0 +1,46 @@
+#STEP:1 ---Create TLS Certificate+ Key---
+# If you will access: https://react.local
+
+openssl req -x509 -nodes -newkey rsa:2048 \
+  -keyout react.key \
+  -out react.crt \
+  -subj "/CN=react.local/O=react.local" \
+  -days 365
+
+# STEP:2 Create Kubernetes TLS Secret from the certificate and key files
+
+kubectl create secret tls react-tls-secret \
+  --cert=react.crt \
+  --key=react.key \
+  -n default
+
+# Step 3 — Write the TLS Ingress YAML
+
+apiVersion: networking.k8s.io/v1  
+kind: Ingress
+metadata:
+  name: react-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - react.local
+      secretName: react-tls-secret
+  rules:
+    - host: react.local
+      http:
+        paths: 
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: react-service
+                port:
+                  number: 80
+
+# ---Step 4 — Add host entry (Local Development)---
+Edit your /etc/hosts:
+   127.0.0.1 react.local
