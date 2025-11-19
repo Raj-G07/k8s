@@ -1,0 +1,67 @@
+# ---Blue depoloyment (Old version)--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: react-blue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: react
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: react
+        version: blue
+    spec:
+      containers:
+        - name: react
+          image: react-app:v1
+          ports:
+            - containerPort: 80
+
+# ---Green deployment (New version)---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: react-green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: react
+      version: green
+  template:
+    metadata:
+      labels:
+        app: react
+        version: green
+    spec:
+      containers:
+        - name: react
+          image: react-app:v2
+          ports:
+            - containerPort: 80
+
+# ---Single Service (Switch Blue → Green)---
+# Initially 
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: react-service
+spec:
+  selector:
+    app: react
+    version: blue     # <-- Blue receives traffic
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
+  
+# After switching update this 
+
+selector:
+  app: react
+  version: green   # <-- Green is now live
