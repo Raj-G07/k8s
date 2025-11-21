@@ -1,0 +1,137 @@
+# configmap.yaml
+...
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+ default.conf: |
+   server {
+       listen 80;
+       server_name nginx.local;
+
+       location / {
+           root /usr/share/nginx/html;
+           index index.html index.htm;
+       }
+   }
+
+# nginx-deployment.yaml
+...
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: nginx-deployment
+spec:
+ replicas: 3
+ strategy:
+   type: RollingUpdate
+   rollingUpdate:
+     maxSurge: 1
+     maxUnavailable: 0
+ selector:
+   matchLabels:
+     app: nginx
+ template:
+   metadata:
+     labels:
+       app: nginx
+   spec:
+     containers:
+       - name: nginx
+         image: nginx:latest
+         ports:
+           - containerPort: 80
+         volumeMounts:
+           - name: config-volume
+             mountPath: /etc/nginx/conf.d/default.conf
+             subPath: default.conf  
+         livenessProbe:
+           httpGet:
+             path: /
+             port: 80 
+           initialDelaySeconds: 15
+           periodSeconds: 20
+
+         readinessProbe:
+           httpGet:
+             path: /
+             port: 80
+           initialDelaySeconds: 15
+           periodSeconds: 20
+
+         resources:
+           requests:
+             memory: "64Mi"
+             cpu: "250m"
+           limits:
+             memory: "128Mi"
+             cpu: "500m"
+     
+     volumes:
+       - name: config-volume
+         configMap:
+         name: nginx-config
+     affinity:
+       podAntiAffinity:
+         requiredDuringSchedulingIgnoredDuringExecution:
+           - labelSelector:
+               matchExpressions:
+                 - key: app
+                   operator: In
+                   values:
+                     - nginx
+             topologyKey: "kubernetes.io/hostname"
+        
+       nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: env
+                    operator: In
+                    values:
+                      - prod
+     
+     tolerations:
+       - key: "env"
+         operator: "Equal"
+         value: "prod"
+         effect: "NoSchedule"
+# nginx-service.yaml
+...
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80  
+  type: ClusterIP
+# nginx-ingress.yaml
+...
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+ name: nginx-ingress
+ annotations: 
+   nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+ tls: 
+  - hosts:
+     - nginx.local
+    secretName: nginx-tls-secret
+ rules:
+   - host: nginx.local
+     http:
+       paths: 
+        - path: /           
+          pathType: Prefix
+          backend:
+            service:
+             name: nginx-service
+             port:
+              number: 80
